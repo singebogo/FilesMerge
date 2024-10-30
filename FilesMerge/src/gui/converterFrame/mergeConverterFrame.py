@@ -5,6 +5,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.tableview import Tableview
 from ttkbootstrap.constants import *
 from tkinter.filedialog import *
+from PyPDF2 import PdfMerger
 
 
 class MergeConverterFrame(ttk.Frame):
@@ -41,10 +42,12 @@ class MergeConverterFrame(ttk.Frame):
         loca.pack(side=LEFT, padx=2)
         frame1 = ttk.Frame(container)
         frame1.grid(row=2, column=0, sticky='w', **options)
-        label = ttk.Label(frame1, text='填写合并文件名称')
+        label = ttk.Label(frame1, text='合并文件名称')
         label.grid(row=0, column=0, sticky='w', **options)
-        self.textneed = ttk.Entry(frame1, textvariable=self.textneedEntry, width=25)
+        self.textneed = ttk.Entry(frame1, textvariable=self.textneedEntry, width=18)
         self.textneed.grid(row=0, column=1, sticky='w', **options)
+        merge = ttk.Button(frame1, text="打开合并文件", command=self.openFile)
+        merge.grid(row=0, column=2, sticky='w', **options)
 
         # colors = self.container.style.colors
 
@@ -60,7 +63,8 @@ class MergeConverterFrame(ttk.Frame):
             coldata=coldata,
             rowdata=rowdata,
             paginated=True,
-            pagesize=10,
+            pagesize=15,
+            height=15,
             autoalign=True,
             autofit=True,
             searchable=False,
@@ -83,6 +87,13 @@ class MergeConverterFrame(ttk.Frame):
             self.dt.insert_row(values=[file])
             self.dt.load_table_data()
 
+    def openFile(self):
+        mfile = self.textneedEntry.get() if self.textneedEntry.get() else "merge.tmp"
+        path = self.merge_path + "\\" + mfile
+        if os.path.exists(path):
+            os.startfile(path)
+
+
     def openDir(self):
         self.split_path = askdirectory()  # 选择目录，返回目录名
         self.merge_path = self.split_path
@@ -94,6 +105,7 @@ class MergeConverterFrame(ttk.Frame):
             self.loca_text.focus_set()  # 将焦点转移到文本框
             self.loca_text.configure(state="readonly")
             self.getFiles()
+            self.textmesgEntry.set("")
         else:
             self.textmesgEntry.set("do not choose Dir")
 
@@ -104,14 +116,34 @@ class MergeConverterFrame(ttk.Frame):
         for row in rows:
             self.file_list.append(row.values[0])
         try:
-            with open(self.merge_path+"\\"+mfile, 'wb') as f:
-                for split_file in self.file_list:
-                    split_file_path = os.path.join(self.split_path, split_file)  # 获取分割文件的完整路径
-                    with open(split_file_path, 'rb') as part:
-                        f.write(part.read())  # 在合并文件中写入分割文件的内容
+            if 'pdf' in self.file_list[0]:
+                self.mergePdf(mfile)
+            else:
+                self.mergeNormal(mfile)
             self.textmesgEntry.set("合并成功")
         except Exception as e:
             self.textmesgEntry.set(e)
+
+    def mergePdf(self, mfile):
+        merger = PdfMerger()
+        # 打开第一个PDF文件并添加到合并对象中
+        for split_file in self.file_list:
+            split_file_path = os.path.join(self.split_path, split_file)  # 获取分割文件的完整路径
+            pdf_file = open(split_file_path, 'rb')
+            merger.append(pdf_file)
+            # 关闭文件
+            pdf_file.close()
+        # 将合并的PDF文件保存为新的PDF文件
+        merged_pdf = open(self.merge_path + "\\" + mfile, 'wb')
+        merger.write(merged_pdf)
+        merged_pdf.close()
+
+    def mergeNormal(self, mfile):
+        with open(self.merge_path+"\\"+mfile, 'wb') as f:
+            for split_file in self.file_list:
+                split_file_path = os.path.join(self.split_path, split_file)  # 获取分割文件的完整路径
+                with open(split_file_path, 'rb') as part:
+                    f.write(part.read())  # 在合并文件中写入分割文件的内容
 
     def reset(self):
         pass

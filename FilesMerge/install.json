@@ -77,6 +77,10 @@
    "optionDest": "hiddenimports",
    "value": "os"
   },
+   {
+   "optionDest": "hiddenimports",
+   "value": "PyPDF2"
+  },
   {
    "optionDest": "datas",
    "value": "D:/Document/Document/python/GUIenv/GUI/FilesMerge/FilesMerge/src;src/"
